@@ -108,10 +108,14 @@ class SockHandle
             synchronized(cnode.ra_inst.cword){
             cnode.ra_inst.cword.high_sn = Math.max(cnode.ra_inst.cword.high_sn,their_sn);
             our_priority = (their_sn > cnode.ra_inst.cword.our_sn) || ( (their_sn == cnode.ra_inst.cword.our_sn) & ( j > cnode.ra_inst.cword.ME ) );
-            if ( cnode.ra_inst.cword.using || ( cnode.ra_inst.cword.waiting & our_priority) )
-                cnode.ra_inst.cword.reply_deferred[j] = true;
 
             System.out.println("check if need to send reply");
+            if ( cnode.ra_inst.cword.using || ( cnode.ra_inst.cword.waiting & our_priority) )
+            {
+                cnode.ra_inst.cword.reply_deferred[j] = true;
+                System.out.println("DEFERRING REPLY to "+j+ "for now");
+            }
+
             if ( !(cnode.ra_inst.cword.using || cnode.ra_inst.cword.waiting) || ( cnode.ra_inst.cword.waiting & !cnode.ra_inst.cword.A[j] & !our_priority ) )
             {
                 System.out.println("REPLY to "+ j+";neither in crit nor requesting");
@@ -134,8 +138,6 @@ class SockHandle
             synchronized(cnode.ra_inst.cword){
             System.out.println("processing REPLY received from PID "+j);
             cnode.ra_inst.cword.A[j] =true;
-            //cnode.ra_inst.cword.notifyAll();
-            //System.out.println("notifyAll called!");
             }
         }
 

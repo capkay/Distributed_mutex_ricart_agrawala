@@ -148,11 +148,6 @@ class ClientNode
         }
     }
 
-    public static boolean areAllFalse(Boolean[] array)
-    {
-    for(Boolean b : array) if(b) return false;
-    return true;
-    }
     public void setup_connections()
     {
         ClientInfo t = new ClientInfo();
