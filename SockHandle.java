@@ -30,6 +30,7 @@ class SockHandle
 	String my_port = null; 		// port of this node
         int my_c_id = -1;
         int remote_c_id = -1;
+        HashMap<Integer, SockHandle> c_list = null;
         HashMap<Integer, SockHandle> s_list = null;
         boolean rx_hdl = false;
         boolean defer_reply = false;
@@ -39,13 +40,14 @@ class SockHandle
 	public static Pattern eom = Pattern.compile("^EOM");  // generic 'end of message' pattern 
 
 	// constructor to connect respective variables
-	SockHandle(Socket client,String my_ip,String my_port,int my_c_id,HashMap<Integer, SockHandle> s_list, boolean rx_hdl,ClientNode cnode) 
+	SockHandle(Socket client,String my_ip,String my_port,int my_c_id,HashMap<Integer, SockHandle> c_list,HashMap<Integer, SockHandle> s_list, boolean rx_hdl,ClientNode cnode) 
 	{
 		this.client  = client;
 		this.my_ip = my_ip;
 		this.my_port = my_port;
                 this.my_c_id = my_c_id;
                 this.remote_c_id = remote_c_id;
+                this.c_list = c_list;
                 this.s_list = s_list;
                 this.optimized_reply = optimized_reply;
                 this.rx_hdl = rx_hdl;
@@ -64,7 +66,7 @@ class SockHandle
                 {
                     if(rx_hdl == true)
                     {
-		        System.out.println("send cmd 1");
+		        System.out.println("send cmd 1: setup sockets to other clients");
                         out.println("initial_setup");
                         ip = in.readLine();
 		        System.out.println("ip:"+ip);
@@ -75,9 +77,9 @@ class SockHandle
 			out.println(my_port);
 			out.println(my_c_id);
 			System.out.println("neighbor connection, PID:"+ Integer.toString(remote_c_id)+ " ip:" + ip + " port = " + port);
-                        synchronized (s_list)
+                        synchronized (c_list)
                         {
-                            s_list.put(remote_c_id,this);
+                            c_list.put(remote_c_id,this);
                         }
                     }
                 }
@@ -95,7 +97,7 @@ class SockHandle
                 {
 			public void run()
                         {
-				while(rx_cmd(in,out) != 0) { }
+			    while(rx_cmd(in,out) != 0) { }
                         }
 		};
 		read.setDaemon(true); 	// terminate when main ends
@@ -125,7 +127,7 @@ class SockHandle
 
             if ( cnode.ra_inst.cword.waiting & cnode.ra_inst.cword.A[j] & !our_priority )
             {
-                System.out.println("REPLY to "+ j+";optimized");
+                System.out.println("REPLY to "+ j+";optimization+received higher priority request");
                 cnode.ra_inst.cword.A[j] = false;
                 crit_reply();
                 crit_request(cnode.ra_inst.cword.our_sn);
@@ -161,7 +163,52 @@ class SockHandle
             //out.println(ts);
             out.println(my_c_id);
         }
-        public void setup_connections()
+        public void enquire_files()
+        {
+            out.println("ENQUIRY");
+        }
+        public void read_file(String filename)
+        {
+            out.println("READ");
+            out.println(filename);
+            try
+            {
+                String content = null;
+	        content = in.readLine();
+                System.out.println("READ content : "+content);
+            }
+	    catch (IOException e) 
+	    {
+	    	System.out.println("Read failed");
+	    	//System.exit(-1);
+	    }
+
+        }
+        public void write_file(String filename,String content)
+        {
+            out.println("READ");
+            out.println(filename);
+            out.println(content);
+            try
+            {
+                String em = null;
+                em = in.readLine();
+                if (em == "EOM")
+                {
+                    System.out.println("WRITE operation finished on server : "+remote_c_id);
+                }
+                else
+                {
+                    System.out.println("WRITE operation ERROR on server : "+remote_c_id);
+                }
+            }
+	    catch (IOException e) 
+	    {
+	    	System.out.println("Read failed");
+	    	//System.exit(-1);
+	    }
+        }
+        public void setup_clients()
         {
             ClientInfo t = new ClientInfo();
             for(int i=0;i<5;i++)
@@ -179,7 +226,7 @@ class SockHandle
                             try
                             {
                                 Socket s = new Socket(t_ip,t_port);
-                                SockHandle t = new SockHandle(s,my_ip,my_port,my_c_id,s_list,false,cnode);
+                                SockHandle t = new SockHandle(s,my_ip,my_port,my_c_id,c_list,s_list,false,cnode);
                             }
                             catch (UnknownHostException e) 
                             {
@@ -200,29 +247,73 @@ class SockHandle
 
                 }
             }
-                Thread y = new Thread()
+            Thread y = new Thread()
+            {
+                public void run()
                 {
-            	public void run()
+                    int size = 0;
+                    while (size != 4)
                     {
-                int size = 0;
-                while (size != 4){
-                    synchronized(s_list){
-		    //System.out.println("sync"+size);
-                    size = s_list.size();}
+                        synchronized(c_list)
+                        {
+                            size = c_list.size();
+                        }
+                    }
+                    if(my_c_id != 4)
+                    {
+                        c_list.get(my_c_id+1).send_setup();
+	                System.out.println("chain setup init");
+                    }
+                    else
+                    {
+                        c_list.get(0).send_setup_finish();
+                    }
                 }
-                if(my_c_id != 4){
-                s_list.get(my_c_id+1).send_setup();
-		    System.out.println("chain setup init");
-                }
-                else
+            };
+                
+            y.setDaemon(true); 	// terminate when main ends
+            y.start(); 			// start the thread
+        }
+        public void setup_servers()
+        {
+            ServerInfo t = new ServerInfo();
+            for(int i=0;i<3;i++)
+            {
+                //System.out.println(t.hmap.get(i).ip);
+                //System.out.println(t.hmap.get(i).port);
+                String t_ip = t.hmap.get(i).ip;
+                int t_port = Integer.valueOf(t.hmap.get(i).port);
+                Thread x = new Thread()
                 {
-                    s_list.get(0).send_setup_finish();
-                }
-            	}
+                    public void run()
+                    {
+                        try
+                        {
+                            Socket s = new Socket(t_ip,t_port);
+                            SockHandle t = new SockHandle(s,my_ip,my_port,my_c_id,c_list,s_list,false,cnode);
+                        }
+                        catch (UnknownHostException e) 
+                        {
+                        	System.out.println("Unknown host");
+                        	//System.exit(1);
+                        } 
+                        catch (IOException e) 
+                        {
+                        	System.out.println("No I/O");
+                        	//System.exit(1);
+                            e.printStackTrace(); 
+                        }
+                    }
                 };
                     
-                y.setDaemon(true); 	// terminate when main ends
-                y.start(); 			// start the thread
+                x.setDaemon(true); 	// terminate when main ends
+                x.start(); 			// start the thread
+            }
+        }
+        public void setup_connections()
+        {
+            setup_servers();
+            setup_clients();
         }
 	// method to process incoming commands and data associated with them
 	public int rx_cmd(BufferedReader cmd,PrintWriter out){
@@ -241,12 +332,30 @@ class SockHandle
 		                System.out.println("port:"+port);
                                 remote_c_id=Integer.valueOf(in.readLine());
 			        System.out.println("neighbor connection, PID:"+ Integer.toString(remote_c_id)+ " ip:" + ip + " port = " + port);
+                                synchronized (c_list)
+                                {
+                                    c_list.put(remote_c_id,this);
+                                }
+			        //out.println("EOM");
+			} 
+                        else if(cmd_in.equals("initial_setup_server"))
+                        {
+		                System.out.println("got cmd 1 from server");
+				out.println(my_ip);
+				out.println(my_port);
+				out.println(my_c_id);
+                                ip = in.readLine();
+		                System.out.println("ip:"+ip);
+                                port=in.readLine();
+		                System.out.println("port:"+port);
+                                remote_c_id=Integer.valueOf(in.readLine());
+			        System.out.println("server connection, PID:"+ Integer.toString(remote_c_id)+ " ip:" + ip + " port = " + port);
                                 synchronized (s_list)
                                 {
                                     s_list.put(remote_c_id,this);
                                 }
 			        //out.println("EOM");
-			} 
+			}
                         else if(cmd_in.equals("chain_setup"))
                         {
                             setup_connections();
@@ -255,6 +364,30 @@ class SockHandle
                         {
 			    System.out.println("connection setup finished");
                             cnode.create_RAlgorithm();
+                        }
+                        else if(cmd_in.equals("ENQUIRY_RESULTS"))
+                        {
+	                    String rd_in = null;
+	                    Matcher m_eom = eom.matcher("start");  // initializing the matcher. "start" does not mean anything
+	                    // obtain metadata from server till EOM is received 
+	    	            System.out.println("before while loop ");
+	                    while(!m_eom.find())
+                            {
+	    	                System.out.println("in while loop ");
+	                        rd_in = in.readLine();
+	                        m_eom = eom.matcher(rd_in);
+	    	                System.out.println("got "+rd_in);
+	                        if(!m_eom.find())
+                                {
+	                            // add metadata to respective list
+	                            String filename = rd_in;
+	                            cnode.files.add(filename);
+	                        } 
+                                else { break; }  // break out of loop when EOM is received
+	                    }
+			    //System.out.println("REQUEST received from PID "+pid+" with timestamp "+ts);
+                            //enquiry finished
+                            cnode.print_enquiry_results();
                         }
                         else if(cmd_in.equals("REQUEST"))
                         {

@@ -29,7 +29,9 @@ class ClientNode
     //List<GLBInfo> world_content	= new LinkedList<GLBInfo>();
     // table that maintains neighbors of this node 
     //List<IPData> neighbors	= new LinkedList<IPData>();
+    HashMap<Integer, SockHandle> c_list = new HashMap<Integer, SockHandle>();
     HashMap<Integer, SockHandle> s_list = new HashMap<Integer, SockHandle>();
+    List<String> files = new ArrayList<String>();
     ClientNode cnode = null;
     // variables to obtain IP/port information of where the node is running
     InetAddress myip = null;
@@ -38,10 +40,14 @@ class ClientNode
     String port = null;
     int c_id = -1;
     RAlgorithm ra_inst = null;
-    ClientNode(String port, int c_id)
+    ClientInfo c_info = null;
+    ServerInfo s_info = null;
+    ClientNode(int c_id)
     {
-    	this.port = port;
+        this.c_info = new ClientInfo();
+        this.s_info = new ServerInfo();
         this.c_id = c_id;
+    	this.port = c_info.hmap.get(c_id).port;
         this.listenSocket();
         this.cnode = this;
     }
@@ -54,6 +60,7 @@ class ClientNode
     	Pattern LIST  = Pattern.compile("^LIST$");
     	Pattern START = Pattern.compile("^START$");
     	Pattern FINISH= Pattern.compile("^FINISH$");
+    	Pattern ENQUIRE= Pattern.compile("^ENQUIRE$");
     	
     	// read from inputstream, process and execute tasks accordingly	
     	int rx_cmd(Scanner cmd)
@@ -66,19 +73,37 @@ class ClientNode
     		Matcher m_LIST= LIST.matcher(cmd_in);
     		Matcher m_SETUP= SETUP.matcher(cmd_in);
     		Matcher m_FINISH= FINISH.matcher(cmd_in);
+    		Matcher m_ENQUIRE= ENQUIRE.matcher(cmd_in);
     		
     		// PEER <IP> <port> , create instance of PeerClient to connect to respective IP/port and add to neighbor list	
     		if(m_SETUP.find())
                 { 
                     setup_connections();
     		}
-                else if(m_LIST.find())
+                else if(m_ENQUIRE.find())
                 { 
+                    int random = (int)(3 * Math.random() + 0);
+                    System.out.println("Enquiring server : "+random+" for files");
                     synchronized (s_list)
                     {
-                        System.out.println("\n=== Iterating over the HashMap's keySet ===");
+                        s_list.get(random).enquire_files();
+                    }
+                }
+                else if(m_LIST.find())
+                { 
+                    synchronized (c_list)
+                    {
+                        System.out.println("\n=== Clients ===");
+                        c_list.keySet().forEach(key -> {
+                        System.out.println("key:"+key + " => ID " + c_list.get(key).remote_c_id);
+                        });
+                        System.out.println("=== size ="+c_list.size());
+                    }
+                    synchronized (s_list)
+                    {
+                        System.out.println("\n=== Servers ===");
                         s_list.keySet().forEach(key -> {
-                        System.out.println("key:"+key + " => " + s_list.get(key).remote_c_id);
+                        System.out.println("key:"+key + " => ID " + s_list.get(key).remote_c_id);
                         });
                         System.out.println("=== size ="+s_list.size());
                     }
@@ -125,6 +150,13 @@ class ClientNode
             e.printStackTrace();
         }
     }
+    public void print_enquiry_results()
+    {
+	System.out.println("Files available:");
+	for (int i = 0; i < files.size(); i++) {
+		System.out.println(files.get(i));
+	}
+    }
     public void request_crit_section()
     {
         System.out.println("\n=== Initiate REQUEST ===");
@@ -139,26 +171,60 @@ class ClientNode
         ra_inst = new RAlgorithm(cnode,c_id);
         if(c_id == 0)
         {
-            synchronized (s_list)
+            synchronized (c_list)
             {
-                s_list.keySet().forEach(key -> {
-                    s_list.get(key).send_setup_finish();
+                c_list.keySet().forEach(key -> {
+                    c_list.get(key).send_setup_finish();
                 });
             }
         }
     }
 
-    public void setup_connections()
+    public void setup_servers()
     {
-        ClientInfo t = new ClientInfo();
+        for(int i=0;i<3;i++)
+        {
+            //System.out.println(c_info.hmap.get(i).ip);
+            //System.out.println(c_info.hmap.get(i).port);
+            String t_ip = s_info.hmap.get(i).ip;
+            int t_port = Integer.valueOf(s_info.hmap.get(i).port);
+            Thread x = new Thread()
+            {
+            public void run()
+                {
+                    try
+                    {
+                        Socket s = new Socket(t_ip,t_port);
+                        SockHandle t = new SockHandle(s,ip,port,c_id,c_list,s_list,false,cnode);
+                    }
+                    catch (UnknownHostException e) 
+                    {
+                    	System.out.println("Unknown host");
+                    	//System.exit(1);
+                    } 
+                    catch (IOException e) 
+                    {
+                    	System.out.println("No I/O");
+                    	//System.exit(1);
+                        e.printStackTrace(); 
+                    }
+            }
+            };
+            x.setDaemon(true); 	// terminate when main ends
+            x.start(); 			// start the thread
+        }
+    }
+    public void setup_clients()
+    {
+        //ClientInfo c_info = new ClientInfo();
         for(int i=0;i<5;i++)
         {
             if(i > c_id)
             {
-                //System.out.println(t.hmap.get(i).ip);
-                //System.out.println(t.hmap.get(i).port);
-                String t_ip = t.hmap.get(i).ip;
-                int t_port = Integer.valueOf(t.hmap.get(i).port);
+                //System.out.println(c_info.hmap.get(i).ip);
+                //System.out.println(c_info.hmap.get(i).port);
+                String t_ip = c_info.hmap.get(i).ip;
+                int t_port = Integer.valueOf(c_info.hmap.get(i).port);
                 Thread x = new Thread()
                 {
             	public void run()
@@ -166,7 +232,7 @@ class ClientNode
                         try
                         {
                             Socket s = new Socket(t_ip,t_port);
-                            SockHandle t = new SockHandle(s,ip,port,c_id,s_list,false,cnode);
+                            SockHandle t = new SockHandle(s,ip,port,c_id,c_list,s_list,false,cnode);
                         }
                         catch (UnknownHostException e) 
                         {
@@ -194,17 +260,23 @@ class ClientNode
                     {
                 int size = 0;
                 while (size != 4){
-                    synchronized(s_list){
+                    synchronized(c_list){
 		    //System.out.println("sync"+size);
-                    size = s_list.size();}
+                    size = c_list.size();}
                 }
-                s_list.get(c_id+1).send_setup();
+                c_list.get(c_id+1).send_setup();
 		    System.out.println("chain setup init");
             	}
                 };
                     
                 y.setDaemon(true); 	// terminate when main ends
                 y.start(); 			// start the thread
+    }
+
+    public void setup_connections()
+    {
+        setup_servers();
+        setup_clients();
     }
     // method to start server and listen for incoming connections
     public void listenSocket()
@@ -242,7 +314,7 @@ class ClientNode
                     try
                     {
                         Socket s = server.accept();
-                	SockHandle t = new SockHandle(s,ip,port,c_id,s_list,true,cnode);
+                	SockHandle t = new SockHandle(s,ip,port,c_id,c_list,s_list,true,cnode);
                     }
                     catch (UnknownHostException e) 
 		    {
@@ -266,12 +338,12 @@ class ClientNode
     public static void main(String[] args)
     {
     	// check for valid number of command line arguments
-    	if (args.length != 2)
+    	if (args.length != 1)
     	{
-    	    System.out.println("Usage: java ClientNode <port-number> <client-id>");
+    	    System.out.println("Usage: java ClientNode <client-id>");
     	    System.exit(1);
     	}
-    	ClientNode server = new ClientNode(args[0], Integer.valueOf(args[1]));
+    	ClientNode server = new ClientNode(Integer.valueOf(args[0]));
     	//server.listenSocket();
     }
 }
