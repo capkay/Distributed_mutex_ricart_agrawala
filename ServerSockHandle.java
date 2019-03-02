@@ -124,7 +124,6 @@ class ServerSockHandle
 			}
                         else if(cmd_in.equals("ENQUIRY"))
                         {
-                            out.println("ENQUIRY_RESULTS");
 			    System.out.println("Received ENQUIRY from client :"+ remote_c_id);
 		            for (int i = 0; i < snode.files.size(); i++) {
 		            	out.println(snode.files.get(i));

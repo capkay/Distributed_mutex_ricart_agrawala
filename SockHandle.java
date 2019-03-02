@@ -33,6 +33,7 @@ class SockHandle
         HashMap<Integer, SockHandle> c_list = null;
         HashMap<Integer, SockHandle> s_list = null;
         boolean rx_hdl = false;
+        boolean svr_hdl = false;
         boolean defer_reply = false;
         Boolean[] optimized_reply = null;
         ClientNode cnode = null;
@@ -40,7 +41,7 @@ class SockHandle
 	public static Pattern eom = Pattern.compile("^EOM");  // generic 'end of message' pattern 
 
 	// constructor to connect respective variables
-	SockHandle(Socket client,String my_ip,String my_port,int my_c_id,HashMap<Integer, SockHandle> c_list,HashMap<Integer, SockHandle> s_list, boolean rx_hdl,ClientNode cnode) 
+	SockHandle(Socket client,String my_ip,String my_port,int my_c_id,HashMap<Integer, SockHandle> c_list,HashMap<Integer, SockHandle> s_list, boolean rx_hdl,boolean svr_hdl,ClientNode cnode) 
 	{
 		this.client  = client;
 		this.my_ip = my_ip;
@@ -51,6 +52,7 @@ class SockHandle
                 this.s_list = s_list;
                 this.optimized_reply = optimized_reply;
                 this.rx_hdl = rx_hdl;
+                this.svr_hdl = svr_hdl;
                 this.cnode = cnode;
 		try 
 		{
@@ -82,6 +84,7 @@ class SockHandle
                             c_list.put(remote_c_id,this);
                         }
                     }
+		    System.out.println("try svr_hdl "+svr_hdl);
                 }
 		catch (IOException e)
 		{
@@ -166,6 +169,32 @@ class SockHandle
         public void enquire_files()
         {
             out.println("ENQUIRY");
+	    String rd_in = null;
+	    Matcher m_eom = eom.matcher("start");  // initializing the matcher. "start" does not mean anything
+	    // obtain metadata from server till EOM is received 
+	    System.out.println("before while loop ");
+            try
+            {
+	        while(!m_eom.find())
+                {
+	            System.out.println("in while loop ");
+	            rd_in = in.readLine();
+	            m_eom = eom.matcher(rd_in);
+	            System.out.println("got "+rd_in);
+	            if(!m_eom.find())
+                    {
+	                // add metadata to respective list
+	                String filename = rd_in;
+	                cnode.files.add(filename);
+	            } 
+                    else { break; }  // break out of loop when EOM is received
+                }
+	    }
+	    catch (IOException e) 
+	    {
+	    	System.out.println("Read failed");
+	    	//System.exit(-1);
+	    }
         }
         public void read_file(String filename)
         {
@@ -226,7 +255,7 @@ class SockHandle
                             try
                             {
                                 Socket s = new Socket(t_ip,t_port);
-                                SockHandle t = new SockHandle(s,my_ip,my_port,my_c_id,c_list,s_list,false,cnode);
+                                SockHandle t = new SockHandle(s,my_ip,my_port,my_c_id,c_list,s_list,false,false,cnode);
                             }
                             catch (UnknownHostException e) 
                             {
@@ -290,7 +319,7 @@ class SockHandle
                         try
                         {
                             Socket s = new Socket(t_ip,t_port);
-                            SockHandle t = new SockHandle(s,my_ip,my_port,my_c_id,c_list,s_list,false,cnode);
+                            SockHandle t = new SockHandle(s,my_ip,my_port,my_c_id,c_list,s_list,false,true,cnode);
                         }
                         catch (UnknownHostException e) 
                         {
@@ -354,6 +383,12 @@ class SockHandle
                                 {
                                     s_list.put(remote_c_id,this);
                                 }
+			        System.out.println("svr_hdl "+svr_hdl);
+                                if(svr_hdl == true)
+                                {
+			            System.out.println("rx_cmd processing finished");
+                                    return 0;
+                                }
 			        //out.println("EOM");
 			}
                         else if(cmd_in.equals("chain_setup"))
@@ -364,30 +399,7 @@ class SockHandle
                         {
 			    System.out.println("connection setup finished");
                             cnode.create_RAlgorithm();
-                        }
-                        else if(cmd_in.equals("ENQUIRY_RESULTS"))
-                        {
-	                    String rd_in = null;
-	                    Matcher m_eom = eom.matcher("start");  // initializing the matcher. "start" does not mean anything
-	                    // obtain metadata from server till EOM is received 
-	    	            System.out.println("before while loop ");
-	                    while(!m_eom.find())
-                            {
-	    	                System.out.println("in while loop ");
-	                        rd_in = in.readLine();
-	                        m_eom = eom.matcher(rd_in);
-	    	                System.out.println("got "+rd_in);
-	                        if(!m_eom.find())
-                                {
-	                            // add metadata to respective list
-	                            String filename = rd_in;
-	                            cnode.files.add(filename);
-	                        } 
-                                else { break; }  // break out of loop when EOM is received
-	                    }
-			    //System.out.println("REQUEST received from PID "+pid+" with timestamp "+ts);
-                            //enquiry finished
-                            cnode.print_enquiry_results();
+                            cnode.initiate_enquiry();
                         }
                         else if(cmd_in.equals("REQUEST"))
                         {

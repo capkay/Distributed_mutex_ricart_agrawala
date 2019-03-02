@@ -82,12 +82,7 @@ class ClientNode
     		}
                 else if(m_ENQUIRE.find())
                 { 
-                    int random = (int)(3 * Math.random() + 0);
-                    System.out.println("Enquiring server : "+random+" for files");
-                    synchronized (s_list)
-                    {
-                        s_list.get(random).enquire_files();
-                    }
+                    initiate_enquiry();
                 }
                 else if(m_LIST.find())
                 { 
@@ -136,6 +131,16 @@ class ClientNode
     		Scanner input = new Scanner(System.in);
     		while(rx_cmd(input) != 0) { }  // to loop forever
     	}
+    }
+    public void initiate_enquiry()
+    {
+        int random = (int)(3 * Math.random() + 0);
+        System.out.println("Enquiring server : "+random+" for files");
+        synchronized (s_list)
+        {
+            s_list.get(random).enquire_files();
+        }
+        print_enquiry_results();
     }
     void randomDelay(double min, double max)
     {
@@ -195,7 +200,7 @@ class ClientNode
                     try
                     {
                         Socket s = new Socket(t_ip,t_port);
-                        SockHandle t = new SockHandle(s,ip,port,c_id,c_list,s_list,false,cnode);
+                        SockHandle t = new SockHandle(s,ip,port,c_id,c_list,s_list,false,true,cnode);
                     }
                     catch (UnknownHostException e) 
                     {
@@ -232,7 +237,7 @@ class ClientNode
                         try
                         {
                             Socket s = new Socket(t_ip,t_port);
-                            SockHandle t = new SockHandle(s,ip,port,c_id,c_list,s_list,false,cnode);
+                            SockHandle t = new SockHandle(s,ip,port,c_id,c_list,s_list,false,false,cnode);
                         }
                         catch (UnknownHostException e) 
                         {
@@ -314,7 +319,7 @@ class ClientNode
                     try
                     {
                         Socket s = server.accept();
-                	SockHandle t = new SockHandle(s,ip,port,c_id,c_list,s_list,true,cnode);
+                	SockHandle t = new SockHandle(s,ip,port,c_id,c_list,s_list,true,false,cnode);
                     }
                     catch (UnknownHostException e) 
 		    {
