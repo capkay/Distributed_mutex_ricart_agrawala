@@ -33,6 +33,7 @@ public class RAlgorithm
     {
         cword.waiting = true;
         cword.our_sn = cword.high_sn + 1;
+        System.out.println("Request resource timestamp :"+cword.our_sn);
 
         for(int j=0;j<cword.N;j++)
         {

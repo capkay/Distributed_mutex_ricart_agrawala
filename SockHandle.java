@@ -104,6 +104,7 @@ class SockHandle
                         }
 		};
 		read.setDaemon(true); 	// terminate when main ends
+                read.setName("rx_cmd_"+my_c_id+"_SockHandle_to_Server"+svr_hdl);
                 read.start();		// start the thread	
 		// run and start thread to process incoming commands which is part of the custom protocol to handle PUBLISH and UNPUBLISH messages
 	}
@@ -149,6 +150,10 @@ class SockHandle
         public void send_setup()
         {
             out.println("chain_setup");
+        }
+        public void send_finish()
+        {
+            out.println("simulation_finish");
         }
         public void send_setup_finish()
         {
@@ -213,16 +218,22 @@ class SockHandle
 	    }
 
         }
-        public void write_file(String filename,String content)
+        public void write_file(String filename)
         {
-            out.println("READ");
+            out.println("WRITE");
             out.println(filename);
-            out.println(content);
+            int timestamp = 0;
+            synchronized(cnode.ra_inst.cword)
+            {
+                timestamp = cnode.ra_inst.cword.our_sn;
+            }
+            out.println("Client "+my_c_id+", "+timestamp);
             try
             {
                 String em = null;
                 em = in.readLine();
-                if (em == "EOM")
+	        Matcher m_eom = eom.matcher(em);
+                if (m_eom.find())
                 {
                     System.out.println("WRITE operation finished on server : "+remote_c_id);
                 }
@@ -272,6 +283,7 @@ class SockHandle
                     };
                         
                     x.setDaemon(true); 	// terminate when main ends
+                    x.setName("Client_"+my_c_id+"_SockHandle_to_Client"+i);
                     x.start(); 			// start the thread
 
                 }
@@ -336,6 +348,7 @@ class SockHandle
                 };
                     
                 x.setDaemon(true); 	// terminate when main ends
+                x.setName("Client_"+my_c_id+"_SockHandle_to_Server"+i);
                 x.start(); 			// start the thread
             }
         }
@@ -393,6 +406,7 @@ class SockHandle
 			}
                         else if(cmd_in.equals("chain_setup"))
                         {
+			    System.out.println("chain_setup ");
                             setup_connections();
                         }
                         else if(cmd_in.equals("chain_setup_finish"))

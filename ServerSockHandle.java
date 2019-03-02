@@ -125,10 +125,13 @@ class ServerSockHandle
                         else if(cmd_in.equals("ENQUIRY"))
                         {
 			    System.out.println("Received ENQUIRY from client :"+ remote_c_id);
-		            for (int i = 0; i < snode.files.size(); i++) {
-		            	out.println(snode.files.get(i));
-			        System.out.println("file :"+ snode.files.get(i));
-		            }
+                            synchronized(snode.files)
+                            {
+		                for (int i = 0; i < snode.files.size(); i++) {
+		                	out.println(snode.files.get(i));
+			            System.out.println("file :"+ snode.files.get(i));
+		                }
+                            }
                             out.println("EOM");
                         }
                         else if(cmd_in.equals("READ"))

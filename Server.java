@@ -189,7 +189,7 @@ class ServerNode
         try
         {
             FileWriter fw = new FileWriter(file, true);
-            fw.write(content+"\n");
+            fw.write("\n"+content);
             fw.close();
         }
         catch (FileNotFoundException e) 

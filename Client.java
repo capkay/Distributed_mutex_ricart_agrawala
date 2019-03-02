@@ -105,11 +105,13 @@ class ClientNode
     		}
                 else if(m_START.find())
                 { 
+    		    System.out.println("START Random READ/WRITE simulation");
                     for(int i=0;i<50;i++)
                     {
                         randomDelay(0.005,1.25);
                         request_crit_section();
                     }
+    		    System.out.println("FINISH Random READ/WRITE simulation");
     		}
                 else if(m_FINISH.find())
                 { 
@@ -134,6 +136,14 @@ class ClientNode
     }
     public void initiate_enquiry()
     {
+        int size = 0;
+        while (size != 3)
+        {
+            synchronized(s_list)
+            {
+                size = s_list.size();
+            }
+        }
         int random = (int)(3 * Math.random() + 0);
         System.out.println("Enquiring server : "+random+" for files");
         synchronized (s_list)
@@ -167,7 +177,31 @@ class ClientNode
         System.out.println("\n=== Initiate REQUEST ===");
         ra_inst.request_resource();
         System.out.println("Entering critical section of client "+ c_id);
-        randomDelay(0.5,4.25);
+        int random = (int)(2 * Math.random() + 0);
+        int rs = (int)(3 * Math.random() + 0);
+        int timestamp = 0;
+        synchronized(ra_inst.cword)
+        {
+            timestamp = ra_inst.cword.our_sn;
+            System.out.println("Critical section timestamp :"+timestamp);
+        }
+        synchronized (s_list)
+        {
+            if(random == 0)
+            {
+                    System.out.println("READ sent to server :"+rs);
+                    s_list.get(rs).read_file("a.txt");
+            }
+            else
+            {
+                    s_list.keySet().forEach(key -> 
+                    {
+                        System.out.println("WRITE sent to server :"+key);
+                        s_list.get(key).write_file("a.txt");
+                    });
+            }
+        }
+        //randomDelay(0.5,4.25);
         System.out.println("Finished critical section of client "+ c_id);
         ra_inst.release_resource();
     }
@@ -216,6 +250,7 @@ class ClientNode
             }
             };
             x.setDaemon(true); 	// terminate when main ends
+            x.setName("Client_"+c_id+"_SockHandle_to_Server"+i);
             x.start(); 			// start the thread
         }
     }
@@ -254,6 +289,7 @@ class ClientNode
                 };
                     
                 x.setDaemon(true); 	// terminate when main ends
+                x.setName("Client_"+c_id+"_SockHandle_to_Client"+i);
                 x.start(); 			// start the thread
 
 
@@ -337,6 +373,7 @@ class ClientNode
             }
         };
         accept.setDaemon(true);
+        accept.setName("AcceptClient_"+c_id+"_SockHandle_to_Client");
         accept.start();
     }
     
