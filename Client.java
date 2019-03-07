@@ -31,6 +31,7 @@ class ClientNode
     //List<IPData> neighbors	= new LinkedList<IPData>();
     HashMap<Integer, SockHandle> c_list = new HashMap<Integer, SockHandle>();
     HashMap<Integer, SockHandle> s_list = new HashMap<Integer, SockHandle>();
+    HashMap<String, RAlgorithm> r_list = new HashMap<String, RAlgorithm>();
     List<String> files = new ArrayList<String>();
     ClientNode cnode = null;
     // variables to obtain IP/port information of where the node is running
@@ -39,7 +40,6 @@ class ClientNode
     String ip = null;
     String port = null;
     int c_id = -1;
-    RAlgorithm ra_inst = null;
     ClientInfo c_info = null;
     ServerInfo s_info = null;
     ClientNode(int c_id)
@@ -115,7 +115,7 @@ class ClientNode
     		}
                 else if(m_FINISH.find())
                 { 
-    		    System.out.println("finished executing");
+    		    System.out.println("Closing connections and exiting program!");
                     return 0;
     		}
     		// default message
@@ -175,14 +175,17 @@ class ClientNode
     public void request_crit_section()
     {
         System.out.println("\n=== Initiate REQUEST ===");
-        ra_inst.request_resource();
+        int rf = (int)( (files.size()) * Math.random() + 0);
+        String filename = files.get(rf);
+        System.out.println("=== Chosen file = "+filename);
+        r_list.get(filename).request_resource();
         System.out.println("Entering critical section of client "+ c_id);
         int random = (int)(2 * Math.random() + 0);
         int rs = (int)(3 * Math.random() + 0);
         int timestamp = 0;
-        synchronized(ra_inst.cword)
+        synchronized(r_list.get(filename).cword)
         {
-            timestamp = ra_inst.cword.our_sn;
+            timestamp = r_list.get(filename).cword.our_sn;
             System.out.println("Critical section timestamp :"+timestamp);
         }
         synchronized (s_list)
@@ -190,24 +193,29 @@ class ClientNode
             if(random == 0)
             {
                     System.out.println("READ sent to server :"+rs);
-                    s_list.get(rs).read_file("a.txt");
+                    s_list.get(rs).read_file(filename);
             }
             else
             {
                     s_list.keySet().forEach(key -> 
                     {
                         System.out.println("WRITE sent to server :"+key);
-                        s_list.get(key).write_file("a.txt");
+                        s_list.get(key).write_file(filename);
                     });
             }
         }
         //randomDelay(0.5,4.25);
         System.out.println("Finished critical section of client "+ c_id);
-        ra_inst.release_resource();
+        r_list.get(filename).release_resource();
     }
     public void create_RAlgorithm()
     {
-        ra_inst = new RAlgorithm(cnode,c_id);
+	for (int i = 0; i < files.size(); i++) {
+	    System.out.println("ME for file :"+files.get(i));
+	    String temp = files.get(i);
+            RAlgorithm rx = new RAlgorithm(cnode,c_id,temp);
+            r_list.put(temp,rx);
+	}
         if(c_id == 0)
         {
             synchronized (c_list)

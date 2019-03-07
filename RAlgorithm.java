@@ -23,10 +23,10 @@ public class RAlgorithm
     MEcontrol cword = null;
     ClientNode cnode = null;
 
-    RAlgorithm(ClientNode cnode, int c_id)
+    RAlgorithm(ClientNode cnode, int c_id, String filename)
     {
         this.cnode = cnode;
-        this.cword = new MEcontrol(c_id);
+        this.cword = new MEcontrol(c_id,filename);
     }
 
     public synchronized void request_resource()
@@ -40,7 +40,7 @@ public class RAlgorithm
             if( (j != cword.ME) & (!cword.A[j]) )
             {
                 System.out.println("REQUEST to "+ j);
-                cnode.c_list.get(j).crit_request(cword.our_sn);
+                cnode.c_list.get(j).crit_request(cword.our_sn,cword.filename);
             }
             if( (j != cword.ME) & (cword.A[j]) )
             {
@@ -96,7 +96,7 @@ public class RAlgorithm
                 System.out.println("DEFERRED REPLY sent to "+ j);
                 cword.A[j]=false;
                 cword.reply_deferred[j]=false;
-                cnode.c_list.get(j).crit_reply();
+                cnode.c_list.get(j).crit_reply(cword.filename);
             }
         }
     }

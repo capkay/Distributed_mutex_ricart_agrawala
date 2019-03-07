@@ -214,11 +214,33 @@ class ServerNode
             {
                 System.out.println("File " + listOfFiles[i].getName());
                 files.add(listOfFiles[i].getName());
+                clearTheFile(listOfFiles[i].getName());
             } 
             else if (listOfFiles[i].isDirectory()) 
             {
                 System.out.println("Directory " + listOfFiles[i].getName());
             }
+        }
+
+    }
+    public void clearTheFile(String filename) {
+        try
+        {
+            FileWriter fwOb = new FileWriter("./"+c_id+"/"+filename, false); 
+            PrintWriter pwOb = new PrintWriter(fwOb, false);
+            pwOb.flush();
+            pwOb.close();
+            fwOb.close();
+        }
+        catch (FileNotFoundException e) 
+        {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        catch (IOException e) 
+        {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
         }
     }
     void randomDelay(double min, double max)

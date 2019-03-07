@@ -108,42 +108,42 @@ class SockHandle
                 read.start();		// start the thread	
 		// run and start thread to process incoming commands which is part of the custom protocol to handle PUBLISH and UNPUBLISH messages
 	}
-        public void process_request_message(int their_sn,int j)
+        public void process_request_message(int their_sn,int j, String filename)
         {
             boolean our_priority;
-            synchronized(cnode.ra_inst.cword){
-            cnode.ra_inst.cword.high_sn = Math.max(cnode.ra_inst.cword.high_sn,their_sn);
-            our_priority = (their_sn > cnode.ra_inst.cword.our_sn) || ( (their_sn == cnode.ra_inst.cword.our_sn) & ( j > cnode.ra_inst.cword.ME ) );
+            synchronized(cnode.r_list){
+            cnode.r_list.get(filename).cword.high_sn = Math.max(cnode.r_list.get(filename).cword.high_sn,their_sn);
+            our_priority = (their_sn > cnode.r_list.get(filename).cword.our_sn) || ( (their_sn == cnode.r_list.get(filename).cword.our_sn) & ( j > cnode.r_list.get(filename).cword.ME ) );
 
             System.out.println("check if need to send reply");
-            if ( cnode.ra_inst.cword.using || ( cnode.ra_inst.cword.waiting & our_priority) )
+            if ( cnode.r_list.get(filename).cword.using || ( cnode.r_list.get(filename).cword.waiting & our_priority) )
             {
-                cnode.ra_inst.cword.reply_deferred[j] = true;
+                cnode.r_list.get(filename).cword.reply_deferred[j] = true;
                 System.out.println("DEFERRING REPLY to "+j+ "for now");
             }
 
-            if ( !(cnode.ra_inst.cword.using || cnode.ra_inst.cword.waiting) || ( cnode.ra_inst.cword.waiting & !cnode.ra_inst.cword.A[j] & !our_priority ) )
+            if ( !(cnode.r_list.get(filename).cword.using || cnode.r_list.get(filename).cword.waiting) || ( cnode.r_list.get(filename).cword.waiting & !cnode.r_list.get(filename).cword.A[j] & !our_priority ) )
             {
                 System.out.println("REPLY to "+ j+";neither in crit nor requesting");
-                cnode.ra_inst.cword.A[j] = false;
-                crit_reply();
+                cnode.r_list.get(filename).cword.A[j] = false;
+                crit_reply(filename);
             }
 
-            if ( cnode.ra_inst.cword.waiting & cnode.ra_inst.cword.A[j] & !our_priority )
+            if ( cnode.r_list.get(filename).cword.waiting & cnode.r_list.get(filename).cword.A[j] & !our_priority )
             {
                 System.out.println("REPLY to "+ j+";optimization+received higher priority request");
-                cnode.ra_inst.cword.A[j] = false;
-                crit_reply();
-                crit_request(cnode.ra_inst.cword.our_sn);
+                cnode.r_list.get(filename).cword.A[j] = false;
+                crit_reply(filename);
+                crit_request(cnode.r_list.get(filename).cword.our_sn,filename);
             }
             }
 
         }
-        public void process_reply_message(int j)
+        public void process_reply_message(int j, String filename)
         {
-            synchronized(cnode.ra_inst.cword){
+            synchronized(cnode.r_list){
             System.out.println("processing REPLY received from PID "+j);
-            cnode.ra_inst.cword.A[j] =true;
+            cnode.r_list.get(filename).cword.A[j] =true;
             }
         }
 
@@ -159,17 +159,19 @@ class SockHandle
         {
             out.println("chain_setup_finish");
         }
-        public void crit_request(int ts)
+        public void crit_request(int ts,String filename)
         {
             out.println("REQUEST");
             out.println(ts);
             out.println(my_c_id);
+            out.println(filename);
         }
-        public void crit_reply()
+        public void crit_reply(String filename)
         {
             out.println("REPLY");
             //out.println(ts);
             out.println(my_c_id);
+            out.println(filename);
         }
         public void enquire_files()
         {
@@ -223,9 +225,9 @@ class SockHandle
             out.println("WRITE");
             out.println(filename);
             int timestamp = 0;
-            synchronized(cnode.ra_inst.cword)
+            synchronized(cnode.r_list)
             {
-                timestamp = cnode.ra_inst.cword.our_sn;
+                timestamp = cnode.r_list.get(filename).cword.our_sn;
             }
             out.println("Client "+my_c_id+", "+timestamp);
             try
@@ -412,22 +414,24 @@ class SockHandle
                         else if(cmd_in.equals("chain_setup_finish"))
                         {
 			    System.out.println("connection setup finished");
-                            cnode.create_RAlgorithm();
                             cnode.initiate_enquiry();
+                            cnode.create_RAlgorithm();
                         }
                         else if(cmd_in.equals("REQUEST"))
                         {
                             int ts = Integer.valueOf(in.readLine());
                             int pid = Integer.valueOf(in.readLine());
-			    System.out.println("REQUEST received from PID "+pid+" with timestamp "+ts);
-                            process_request_message(ts,pid);
+                            String filename = in.readLine();
+			    System.out.println("REQUEST received from PID "+pid+" with timestamp "+ts+" for file "+filename);
+                            process_request_message(ts,pid,filename);
                         }
                         else if(cmd_in.equals("REPLY"))
                         {
                             //int ts = Integer.valueOf(in.readLine());
                             int pid = Integer.valueOf(in.readLine());
-			    System.out.println("REPLY received from PID "+pid);
-                            process_reply_message(pid);
+                            String filename = in.readLine();
+			    System.out.println("REPLY received from PID "+pid+" for file "+filename);
+                            process_reply_message(pid,filename);
                         }
 		}
 		catch (IOException e) 
