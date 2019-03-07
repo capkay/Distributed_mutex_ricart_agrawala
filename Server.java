@@ -19,27 +19,28 @@ import java.util.Map;
 import java.util.Iterator;
 import java.util.Set;
 
-// ClientNode class : handles both server/client connections to other P2P nodes and handle content shared/published over this network 
+// ServerNode class : handles connections from all client nodes 
 class ServerNode
 {
     // server socket variables 
-    ServerSocket server = null; 	// server socket used by PeerWorker, socket for maintaining the P2P network
-    final int local_d = 1;
-    // table that maintains list of files
-    //List<GLBInfo> world_content	= new LinkedList<GLBInfo>();
-    // table that maintains neighbors of this node 
-    //List<IPData> neighbors	= new LinkedList<IPData>();
-    HashMap<Integer, ServerSockHandle> s_list = new HashMap<Integer, ServerSockHandle>();
-    ServerNode snode = null;
+    ServerSocket server = null;
     // variables to obtain IP/port information of where the node is running
     InetAddress myip = null;
     String hostname = null;
     String ip = null;
     String port = null;
+    // variable to store ID of server
     int c_id = -1;
-    RAlgorithm ra_inst = null;
+    // variables to get server endpoint information
     ServerInfo s_info = null;
+    // hash table that contains socket connections from clients based on client IDs
+    HashMap<Integer, ServerSockHandle> s_list = new HashMap<Integer, ServerSockHandle>();
+    // list of files updated during start
     List<String> files = new ArrayList<String>();
+    // handle to server object, ultimately self 
+    ServerNode snode = null;
+    // constructor takes ServerID passed from command line from main()
+    // populate_files & listenSocket is called as part of starting up
     ServerNode(int c_id)
     {
         this.s_info = new ServerInfo();
@@ -50,13 +51,11 @@ class ServerNode
         this.snode = this;
     }
 
-    // CommandParser class is used to parse and execute respective commands that are entered via command line to initialize/publish/unpublish/query from an establised P2P node
+    // CommandParser class is used to parse and execute respective commands that are entered via command line to SETUP/LIST/START/FINISH simulation
     public class CommandParser extends Thread
     {
       	// initialize patters for commands
-    	Pattern SETUP = Pattern.compile("^SETUP$");
     	Pattern LIST  = Pattern.compile("^LIST$");
-    	Pattern START = Pattern.compile("^START$");
     	Pattern FINISH= Pattern.compile("^FINISH$");
     	
     	// read from inputstream, process and execute tasks accordingly	
@@ -66,16 +65,12 @@ class ServerNode
     		if (cmd.hasNext())
     			cmd_in = cmd.nextLine();
     
-    		Matcher m_START= START.matcher(cmd_in);
     		Matcher m_LIST= LIST.matcher(cmd_in);
-    		Matcher m_SETUP= SETUP.matcher(cmd_in);
     		Matcher m_FINISH= FINISH.matcher(cmd_in);
     		
-    		// PEER <IP> <port> , create instance of PeerClient to connect to respective IP/port and add to neighbor list	
-    		if(m_SETUP.find())
-                { 
-    		}
-                else if(m_LIST.find())
+                // print the list of files and
+                // check the list of socket connections available on this server
+                if(m_LIST.find())
                 { 
 		    System.out.println("Files:");
 		    for (int i = 0; i < files.size(); i++) {
@@ -89,9 +84,6 @@ class ServerNode
                         });
                         System.out.println("=== size ="+s_list.size());
                     }
-    		}
-                else if(m_START.find())
-                { 
     		}
                 else if(m_FINISH.find())
                 { 
@@ -107,21 +99,50 @@ class ServerNode
     	}
     
     	public void run() {
-    		System.out.println("Enter commands: LIST");
+    		System.out.println("Enter commands: LIST/FINISH");
     		Scanner input = new Scanner(System.in);
     		while(rx_cmd(input) != 0) { }  // to loop forever
     	}
     }
+
+    // end program method, calls close on all socket instances and exits program
+    public void end_program()
+    {
+        System.out.println("Received Termination message, Shutting down !");
+        synchronized (s_list)
+        {
+            s_list.keySet().forEach(key -> {
+                try
+                {
+                    s_list.get(key).client.close();
+                }
+                catch (IOException e) 
+                {
+                	System.out.println("No I/O");
+                	//System.exit(1);
+                    e.printStackTrace(); 
+                }
+            });
+        }
+        System.exit(1);
+    }
+
+    // read last line and return it, for the requested file
     public String do_read_operation(String filename)
     {
+        // directory is based on serverID
         File file = new File("./"+c_id+"/"+filename);
 	if (!file.exists()) 
         {
 	    System.out.println("File "+filename+" does not exist");
             return "NULL";
 	}
+        // return line
         return readFromLast(file);
     }
+
+    // method to read last line from a file
+    // adapted from StackOverflow
     public String readFromLast(File file)
     {
         int lines = 0;
@@ -178,8 +199,11 @@ class ServerNode
         }
         return builder.toString();
     }
+
+    // write to file
     public void do_write_operation(String filename,String content)
     {
+        // directory is based on serverID
         File file = new File("./"+c_id+"/"+filename);
 	if (!file.exists()) 
         {
@@ -188,6 +212,7 @@ class ServerNode
 	}
         try
         {
+            // write / append to the file
             FileWriter fw = new FileWriter(file, true);
             fw.write("\n"+content);
             fw.close();
@@ -204,6 +229,9 @@ class ServerNode
         }
     }
 
+    // method to check the serverID directory for files and populate them in a list
+    // also clear the contents of these files
+    // adapted from StackOverflow
     public void populate_files()
     {
         File folder = new File("./"+c_id+"/");
@@ -223,6 +251,9 @@ class ServerNode
         }
 
     }
+
+    // method to clear the contents of the file when starting up
+    // adapted from StackOverflow
     public void clearTheFile(String filename) {
         try
         {
@@ -238,19 +269,6 @@ class ServerNode
             e.printStackTrace();
         }
         catch (IOException e) 
-        {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-    }
-    void randomDelay(double min, double max)
-    {
-        int random = (int)(max * Math.random() + min);
-        try 
-        {
-            Thread.sleep(random * 1000);
-        } 
-        catch (InterruptedException e) 
         {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -277,6 +295,9 @@ class ServerNode
             System.out.println("Error creating socket");
             System.exit(-1);
         }
+
+	// create instance of commandparser thread and start it	
+        // to get command line inputs from user
 	CommandParser cmdpsr = new CommandParser();
 	cmdpsr.start();
 
@@ -290,6 +311,7 @@ class ServerNode
                     try
                     {
                         Socket s = server.accept();
+                        // ServerSockHandle instance with rx_hdl true as this is the socket listener
                 	ServerSockHandle t = new ServerSockHandle(s,ip,port,c_id,s_list,true,snode);
                     }
                     catch (UnknownHostException e) 
@@ -314,12 +336,12 @@ class ServerNode
     public static void main(String[] args)
     {
     	// check for valid number of command line arguments
+        // get server ID as argument
     	if (args.length != 1)
     	{
     	    System.out.println("Usage: java ServerNode <server-id>");
     	    System.exit(1);
     	}
     	ServerNode server = new ServerNode(Integer.valueOf(args[0]));
-    	//server.listenSocket();
     }
 }

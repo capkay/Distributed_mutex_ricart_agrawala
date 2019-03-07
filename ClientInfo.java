@@ -1,15 +1,13 @@
-import java.io.*;
 import java.util.HashMap;
-import java.util.Map;
-import java.util.Iterator;
-import java.util.Set;
-// Data structure to store neighbor information 
+// Data structure initialized to have client endpoint information
 public class ClientInfo
 {
+    // define hashmap to hold Client Info <Id, Endpoint Info>
     public HashMap<Integer, IPData> hmap = new HashMap<Integer, IPData>();
     
     ClientInfo()
     {
+        // create and populate data
         IPData c0 = new IPData("localhost","5100");
         IPData c1 = new IPData("localhost","5101");
         IPData c2 = new IPData("localhost","5102");
