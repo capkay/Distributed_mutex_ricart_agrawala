@@ -259,6 +259,7 @@ class ServerNode
         {
             FileWriter fwOb = new FileWriter("./"+c_id+"/"+filename, false); 
             PrintWriter pwOb = new PrintWriter(fwOb, false);
+            pwOb.write("\nSTART");
             pwOb.flush();
             pwOb.close();
             fwOb.close();

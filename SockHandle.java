@@ -194,7 +194,7 @@ class SockHandle
     }
 
     // method to send the REQUEST message with timestamp and file identifier
-    public void crit_request(int ts,String filename)
+    public synchronized void crit_request(int ts,String filename)
     {
         out.println("REQUEST");
         out.println(ts);
@@ -203,7 +203,7 @@ class SockHandle
     }
 
     // method to send the REPLY message with file identifier
-    public void crit_reply(String filename)
+    public synchronized void crit_reply(String filename)
     {
         out.println("REPLY");
         out.println(my_c_id);
