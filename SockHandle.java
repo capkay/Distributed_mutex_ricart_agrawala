@@ -107,6 +107,7 @@ class SockHandle
     	catch (NullPointerException e)
     	{
     	    System.out.println("peer connection lost");
+    	    System.exit(1);
     	}
         // thread that continuously runs and waits for incoming messages
         // to process it and perform actions accordingly
@@ -234,7 +235,7 @@ class SockHandle
         catch (IOException e) 
         {
         	System.out.println("Read failed");
-        	//System.exit(-1);
+        	System.exit(-1);
         }
     }
 
@@ -253,7 +254,7 @@ class SockHandle
         catch (IOException e) 
         {
         	System.out.println("Read failed");
-        	//System.exit(-1);
+        	System.exit(-1);
         }
     }
 
@@ -287,7 +288,7 @@ class SockHandle
         catch (IOException e) 
         {
         	System.out.println("Read failed");
-        	//System.exit(-1);
+        	System.exit(-1);
         }
     }
 
@@ -318,13 +319,13 @@ class SockHandle
                         catch (UnknownHostException e) 
                         {
                         	System.out.println("Unknown host");
-                        	//System.exit(1);
+                        	System.exit(1);
                         } 
                         catch (IOException e) 
                         {
                         	System.out.println("No I/O");
-                        	//System.exit(1);
                             e.printStackTrace(); 
+                        	System.exit(1);
                         }
             	}
                 };
@@ -395,13 +396,13 @@ class SockHandle
                     catch (UnknownHostException e) 
                     {
                     	System.out.println("Unknown host");
-                    	//System.exit(1);
+                    	System.exit(1);
                     } 
                     catch (IOException e) 
                     {
                     	System.out.println("No I/O");
-                    	//System.exit(1);
                         e.printStackTrace(); 
+                    	System.exit(1);
                     }
                 }
             };
@@ -512,7 +513,7 @@ class SockHandle
     	catch (IOException e) 
     	{
     	    System.out.println("Read failed");
-    	    //System.exit(-1);
+    	    System.exit(-1);
     	}
     
     	// default : return 1, to continue processing further commands 

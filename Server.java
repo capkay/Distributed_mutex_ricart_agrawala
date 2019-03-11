@@ -138,12 +138,12 @@ class ServerNode
             return "NULL";
 	}
         // return line
-        return readFromLast(file);
+        return readFromLast(file,filename);
     }
 
     // method to read last line from a file
     // adapted from StackOverflow
-    public String readFromLast(File file)
+    public String readFromLast(File file, String filename)
     {
         int lines = 0;
         StringBuilder builder = new StringBuilder();
@@ -170,7 +170,7 @@ class ServerNode
             // Since line is read from the last so it 
             // is in reverse so use reverse method to make it right
             builder.reverse();
-            System.out.println("Line - " + builder.toString());
+            System.out.println("Line - " + builder.toString()+" - File : "+filename);
         } 
         catch (FileNotFoundException e) 
         {

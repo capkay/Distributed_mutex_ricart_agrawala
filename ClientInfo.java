@@ -8,11 +8,11 @@ public class ClientInfo
     ClientInfo()
     {
         // create and populate data
-        IPData c0 = new IPData("localhost","5100");
-        IPData c1 = new IPData("localhost","5101");
-        IPData c2 = new IPData("localhost","5102");
-        IPData c3 = new IPData("localhost","5103");
-        IPData c4 = new IPData("localhost","5104");
+        IPData c0 = new IPData("dc01.utdallas.edu","5100");
+        IPData c1 = new IPData("dc02.utdallas.edu","5101");
+        IPData c2 = new IPData("dc03.utdallas.edu","5102");
+        IPData c3 = new IPData("dc04.utdallas.edu","5103");
+        IPData c4 = new IPData("dc05.utdallas.edu","5104");
         this.hmap.put(0,c0);
         this.hmap.put(1,c1);
         this.hmap.put(2,c2);

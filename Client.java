@@ -60,7 +60,7 @@ class ClientNode
       	// initialize patters for commands
     	Pattern SETUP = Pattern.compile("^SETUP$");
     	Pattern LIST  = Pattern.compile("^LIST$");
-    	Pattern START = Pattern.compile("^START$");
+    	Pattern START = Pattern.compile("^START (\\d+)$");
     	Pattern FINISH= Pattern.compile("^FINISH$");
     	Pattern ENQUIRE= Pattern.compile("^ENQUIRE$");
     	
@@ -125,13 +125,14 @@ class ClientNode
                 // start the random read/write simulation to access critical section based on Ricart-Agrawala algorithm
                 else if(m_START.find())
                 { 
-    		    System.out.println("START Random READ/WRITE simulation");
-                    for(int i=0;i<50;i++)
+    		    System.out.println("**************START Random READ/WRITE simulation");
+                    for(int i=0;i<Integer.valueOf(m_START.group(1));i++)
                     {
                         randomDelay(0.005,1.25);
+    		    		System.out.println("**************Iteration : "+i+" of simulation.");
                         request_crit_section();
                     }
-    		    System.out.println("FINISH Random READ/WRITE simulation");
+    		    System.out.println("**************FINISH Random READ/WRITE simulation");
     		}
                 // command to close PROGRAM
                 else if(m_FINISH.find())
@@ -141,6 +142,12 @@ class ClientNode
                     {
                         c_list.keySet().forEach(key -> {
                             c_list.get(key).send_finish();
+                        });
+                    }
+                    synchronized (s_list)
+                    {
+                        s_list.keySet().forEach(key -> {
+                            s_list.get(key).send_finish();
                         });
                     }
                     randomDelay(0.7,0.9);
