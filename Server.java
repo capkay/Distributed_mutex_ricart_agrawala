@@ -313,19 +313,19 @@ class ServerNode
                     {
                         Socket s = server.accept();
                         // ServerSockHandle instance with rx_hdl true as this is the socket listener
-                	ServerSockHandle t = new ServerSockHandle(s,ip,port,c_id,s_list,true,snode);
+                	    ServerSockHandle t = new ServerSockHandle(s,ip,port,c_id,s_list,true,snode);
                     }
                     catch (UnknownHostException e) 
-		    {
-		    	System.out.println("Unknown host");
-		    	//System.exit(1);
-		    } 
-		    catch (IOException e) 
-		    {
-		    	System.out.println("No I/O");
-		    	//System.exit(1);
+		            {
+		            	System.out.println("Unknown host");
+		            	System.exit(1);
+		            } 
+		            catch (IOException e) 
+		            {
+		            	System.out.println("No I/O");
                         e.printStackTrace(); 
-		    }
+		            	System.exit(1);
+		            }
 
                 }
             }

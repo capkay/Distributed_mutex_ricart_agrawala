@@ -101,6 +101,7 @@ class ServerSockHandle
     	catch (NullPointerException e)
     	{
     	    System.out.println("peer connection lost");
+    	    System.exit(1);
     	}
         // thread that continuously runs and waits for incoming messages
         // to process it and perform actions accordingly
@@ -182,7 +183,7 @@ class ServerSockHandle
     	catch (IOException e) 
     	{
     	    System.out.println("Read failed");
-    	    //System.exit(-1);
+    	    System.exit(-1);
     	}
     
     	// default : return 1, to continue processing further commands 

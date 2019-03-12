@@ -184,8 +184,8 @@ class ClientNode
                 catch (IOException e) 
                 {
                     System.out.println("No I/O");
-                    //System.exit(1);
                     e.printStackTrace(); 
+                    System.exit(1);
                 }
             });
         }
@@ -199,8 +199,8 @@ class ClientNode
                 catch (IOException e) 
                 {
                     System.out.println("No I/O");
-                    //System.exit(1);
                     e.printStackTrace(); 
+                    System.exit(1);
                 }
             });
         }
@@ -346,13 +346,13 @@ class ClientNode
                     catch (UnknownHostException e) 
                     {
                     	System.out.println("Unknown host");
-                    	//System.exit(1);
+                    	System.exit(1);
                     } 
                     catch (IOException e) 
                     {
                     	System.out.println("No I/O");
-                    	//System.exit(1);
                         e.printStackTrace(); 
+                    	System.exit(1);
                     }
                 }
             };
@@ -389,13 +389,13 @@ class ClientNode
                         catch (UnknownHostException e) 
                         {
                         	System.out.println("Unknown host");
-                        	//System.exit(1);
+                        	System.exit(1);
                         } 
                         catch (IOException e) 
                         {
                         	System.out.println("No I/O");
-                        	//System.exit(1);
                             e.printStackTrace(); 
+                        	System.exit(1);
                         }
             	    }
                 };
@@ -482,13 +482,13 @@ class ClientNode
                     catch (UnknownHostException e) 
 		    {
 		    	System.out.println("Unknown host");
-		    	//System.exit(1);
+		    	System.exit(1);
 		    } 
 		    catch (IOException e) 
 		    {
 		    	System.out.println("No I/O");
-		    	//System.exit(1);
-                        e.printStackTrace(); 
+                e.printStackTrace(); 
+		    	System.exit(1);
 		    }
 
                 }

@@ -1,4 +1,4 @@
-Distributed Mutual Exclusion based on Ricart-Agrawala algorithm with Roucairol-Carvalho optimization
+# Distributed Mutual Exclusion based on Ricart-Agrawala algorithm with Roucairol-Carvalho optimization
 
 1. Modify ClientInfo.java and ServerInfo.java first to match hostnames where each of the 5 clients and 3 servers are going to be run.
 2. Create 3 directories named 0,1 & 2 (based on serverIDs) in this directory.
@@ -10,11 +10,11 @@ Distributed Mutual Exclusion based on Ricart-Agrawala algorithm with Roucairol-C
 5. SSH to each host and start the client/server :
 
   example for Client 0 : 
-  # SSH using credentials; need to match hostname in ClientInfo.java
+  // SSH using credentials; need to match hostname in ClientInfo.java
   ssh dc01.utdallas.edu
-  # cd into directory where code is present
+  // cd into directory where code is present
   cd Distributed_mutex_ricart_agrawala/
-  # start the client node passing the ID as argument and logging all messages to a text file 
+  // start the client node passing the ID as argument and logging all messages to a text file 
   java ClientNode 0 | tee c0.txt
 
   For all clients and servers same has to be repeated :
