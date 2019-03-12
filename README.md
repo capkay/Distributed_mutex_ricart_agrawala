@@ -10,11 +10,17 @@
 ### 5. SSH to each host and start the client/server :
 
   example for Client 0 : 
+  
   // SSH using credentials; need to match hostname in ClientInfo.java
+  
   `ssh dc01.utdallas.edu`
+  
   // cd into directory where code is present
+  
   `cd Distributed_mutex_ricart_agrawala/`
+  
   // start the client node passing the ID as argument and logging all messages to a text file 
+  
   `java ClientNode 0 | tee c0.txt`
 
 ####  For all clients and servers same has to be repeated :
